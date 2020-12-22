@@ -292,17 +292,20 @@ cv::Mat detect_decode_qrcode(cv::Mat input)
     // 保证向量起点终点一致
     if (midPt.x > diagPts[2].x)
     {
-        theta = atan2(diagPts[1].y - diagPts[0].y, diagPts[1].x - diagPts[0].x);
+        // 一二象限
+        theta = atan2(diagPts[1].y - diagPts[0].y, diagPts[1].x - diagPts[0].x) * 180 / 3.1415926;
     }
     else
     {
-        theta = atan2(diagPts[0].y - diagPts[1].y, diagPts[0].x - diagPts[1].x);
+        // 三四象限
+        theta = atan2(diagPts[0].y - diagPts[1].y, diagPts[0].x - diagPts[1].x) * 180 / 3.1415926 + 360.0;
+
     }
     
-     
-     float angle = - theta * 180 / 3.1415926 + 45;
+     // 坐标系转换 y变-y,对于theta = arctan(x)来说，也应该取负 -（theta - 45） 哎呦，看错了标准位置，那再减90°吧
+     float angle = - theta  + 45 + 90;
     
-    cout << "对角线角度theta（像素坐标系下）:" << theta * 180 / 3.1415926 << endl;
+    cout << "对角线角度theta（像素坐标系下）:" << theta << endl;
     cout << "需矫正的角度angle：" << angle << endl;
 
     // 获得二维码轮廓
@@ -319,9 +322,9 @@ cv::Mat detect_decode_qrcode(cv::Mat input)
     for (int i = 0; i < contours_erode.size(); i++)
     {
         vector<Point> cn = contours_erode[i];
-        drawContours(draw1, contours_erode, i, Scalar(255, 155, 100), 4);
+        //drawContours(draw1, contours_erode, i, Scalar(255, 155, 100), 4);
         float cnArea = contourArea(cn);
-        if ((cnArea > 650000) || (cnArea < 450000)) continue;
+        if ((cnArea > 610000) || (cnArea < 500000)) continue;
         contours2_erode.push_back(cn);
 
         Scalar color = Scalar(0, 0, 255);
@@ -379,6 +382,11 @@ cv::Mat detect_decode_qrcode(cv::Mat input)
     //cv::rectangle(draw1, new_rect, Scalar(0, 0, 255), 8, 0);
     //Mat result_img = img_gray(new_rect);   //将找到的矩形 放进灰度图中，这样图片就可以根据矩形切割出来了
     
+    if (barcodes.size() == 0)
+    {
+        cout << "could not find Qtbar" << endl;
+        return draw1;
+    }
     Mat result_img = barcodes[0];
     ImageScanner scanner;
     scanner.set_config(ZBAR_QRCODE, ZBAR_CFG_ENABLE, 1);
@@ -408,7 +416,7 @@ cv::Mat detect_decode_qrcode(cv::Mat input)
 
 int main(int argc, char** argv)
 {
-    cv::Mat image = cv::imread("./pic_test2/pos5.bmp");
+    cv::Mat image = cv::imread("./pic_test2/pos6.bmp");
     //cv::Mat algo_img = detect_bar_auto(image);
     cv::Mat algo_img = detect_decode_qrcode(image);
     waitKey(0);
